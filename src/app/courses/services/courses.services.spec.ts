@@ -2,7 +2,7 @@ import { TestBed } from "@angular/core/testing";
 import { CoursesService } from "./courses.service";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
 import { COURSES } from "../../../../server/db-data";
-import { provideHttpClient } from "@angular/common/http";
+import { HttpErrorResponse, provideHttpClient } from "@angular/common/http";
 import { Course } from "../model/course";
 
 describe('CoursesService', () => {
@@ -34,7 +34,7 @@ describe('CoursesService', () => {
                 const course = courses.find(course => course.id == 12);
                 expect(course.titles.description).toBe('Angular Testing Course');
             });
-        
+
             const req = httpTestingController.expectOne('/api/courses');
             expect(req.request.method).toEqual('GET');
 
@@ -48,7 +48,7 @@ describe('CoursesService', () => {
                 expect(course).toBeTruthy();
                 expect(course.id).toBe(12)
             });
-        
+
             const req = httpTestingController.expectOne('/api/courses/12');
             expect(req.request.method).toEqual('GET');
 
@@ -61,14 +61,27 @@ describe('CoursesService', () => {
             .subscribe(course => {
                 expect(course.id).toBe(12);
             })
-        
+
         const req = httpTestingController.expectOne('/api/courses/12');
         expect(req.request.method).toEqual('PUT');
         expect(req.request.body.titles.description)
             .toEqual(changes.titles.description);
-        
+
         req.flush(
             {...COURSES[12], ...changes}
         )
+    })
+
+    it('should give an error if save course fails', () => {
+      const changes: Partial<Course> = {titles: {description: 'Testing Course'}};
+      coursesService.saveCourse(12, changes).subscribe(
+        () => fail('the save course operation should have failed'),
+        (error: HttpErrorResponse) => expect(error.status).toBe(500)
+      );
+
+      const req = httpTestingController.expectOne('/api/courses/12');
+      expect(req.request.method).toEqual('PUT');
+
+      req.flush('Save course failed', {status: 500, statusText: ' Internal Server Error'});
     })
 })
