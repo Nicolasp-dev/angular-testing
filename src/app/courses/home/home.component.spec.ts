@@ -1,7 +1,6 @@
-import { filter } from 'rxjs/operators';
 import { DebugElement } from "@angular/core"
 import { HomeComponent } from "./home.component"
-import { ComponentFixture, TestBed, waitForAsync } from "@angular/core/testing";
+import { ComponentFixture, fakeAsync, flush, TestBed, waitForAsync } from "@angular/core/testing";
 import { CoursesModule } from "../courses.module";
 import { NoopAnimationsModule } from "@angular/platform-browser/animations";
 import { CoursesService } from "../services/courses.service";
@@ -78,7 +77,7 @@ describe('HomeComponent', () => {
       expect(tabs.length).toBe(2, 'Unexpected number of tabs found');
     })
 
-    it('should display advanced courses when tab clicked', (done: DoneFn) => {
+    it('should display advanced courses when tab clicked [DoneFn Approach]', (done: DoneFn) => {
       coursesService.findAllCourses.and.returnValue(of(setupCourses()));
       fixture.detectChanges();
 
@@ -95,8 +94,44 @@ describe('HomeComponent', () => {
 
         done();
       }, 500);
-
-
-
     })
+
+    it('should display advanced courses when tab clicked [fakeAsync() Approach]', fakeAsync(() => {
+      coursesService.findAllCourses.and.returnValue(of(setupCourses()));
+
+      fixture.detectChanges();
+
+      const tabs = el.queryAll(By.css('.mat-mdc-tab'));
+
+      click(tabs[1]);
+
+      fixture.detectChanges();
+
+      flush();
+
+      const cardTitles = el.queryAll(By.css('.mat-mdc-tab-body-active .mat-mdc-card-title'));
+
+      expect(cardTitles.length).toBeGreaterThan(0, 'Could not find card titles');
+      expect(cardTitles[0].nativeElement.textContent).toContain('Angular Security Course');
+    }))
+
+    it('should display advanced courses when tab clicked [waitForAsync() Approach]', waitForAsync(() => {
+      coursesService.findAllCourses.and.returnValue(of(setupCourses()));
+
+      fixture.detectChanges();
+
+      const tabs = el.queryAll(By.css('.mat-mdc-tab'));
+
+      click(tabs[1]);
+
+      fixture.detectChanges();
+
+      fixture.whenStable().then(() => {
+        const cardTitles = el.queryAll(By.css('.mat-mdc-tab-body-active .mat-mdc-card-title'));
+
+        expect(cardTitles.length).toBeGreaterThan(0, 'Could not find card titles');
+        expect(cardTitles[0].nativeElement.textContent).toContain('Angular Security Course');
+      })
+
+    }))
 })
